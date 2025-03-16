@@ -1,89 +1,91 @@
-pub struct CodeScraperApp{
-    // url: String,
-    // css_selector: String,
-    // coupon_codes: Vec<String>,
-    Window: Application,
-}
+use gtk::{prelude::*, Orientation};
+use gtk::{Application, ApplicationWindow, Paned};
 
-use gtk::subclass::widget::CompositeTemplate;
-use gtk::{Application, ApplicationWindow};
-use gtk::prelude::*;
-const APP_ID: &str = "org.gtk_rs.HelloWorld1";
+
+pub struct CodeScraperApp {
+    win: Application,
+}
 
 pub trait CodeScraperAppTrait {
-    fn new() -> Self;
-    fn create_app(&mut self)->Application;
-    fn core_ui(app: &Application);
+    fn new() -> CodeScraperApp;
 }
 
-impl CodeScraperAppTrait for CodeScraperApp{
-    fn new() -> Self {
-        let mut app = CodeScraperApp {
-            Window: Application::new(Some(APP_ID), Default::default()),
-        };
-        app.create_app();
-        app
+
+/// # Builder for own application
+/// this get the path
+fn app_builder<T: Fn(Application) -> Application>(path: String, apply: T) -> Application {
+    apply(Application::builder().application_id(path).build())
+}
+
+impl CodeScraperAppTrait for CodeScraperApp {
+    fn new() -> CodeScraperApp {
+        CodeScraperApp {
+            win: app_builder("org.example.HelloWorld".to_owned(), |app: Application| {
+                app.connect_activate(|app| {
+                    // We create the main window.
+                    let builder = ApplicationWindow::builder()
+                    .application(app)
+                    .title("Hello, World!")
+                    .default_width(800)
+                    .default_height(600)
+                    .child(&PrincipalPanel::new())
+                    .build();
+
+                    builder.present();
+                    
+                });
+                app.run();
+                app
+            }),
+        }
+    }
+}
+
+
+struct PrincipalPanel;
+
+impl PrincipalPanel {
+
+    fn new() -> Paned {
+        let side =  Paned::new(
+            gtk::Orientation::Horizontal
+        );
+        let my_box = &gtk::Box::new(Orientation::Vertical, 0);
+        let scroled_window = &gtk::ScrolledWindow::new();
+        scroled_window.set_child(
+            Some(
+                
+                &main_content_box()
+
+            )
+        );
+        my_box.append(&gtk::Button::with_label("Start"));
+        side.set_start_child(
+            Some(
+                my_box 
+            )
+        );
+        side.start_child().unwrap().set_width_request(150);
+            
+        side.set_end_child(
+            Some(scroled_window)
+            );
+        side.end_child().unwrap().set_width_request(400);
+        
+
+           return side;
     }
 
-    fn create_app(&mut self) -> Application{
+}
 
-        // Create a new application
-        let app = Application::builder()
-        .application_id(APP_ID)
-        .build();
+fn main_content_box() -> gtk::Box {
+    let vertical_box = gtk::Box::new( Orientation::Vertical, 0);
+    vertical_box.append(&title_text("Title"));
+    return vertical_box;
+}
 
-        // Connect to 'activate' signal
-        app.connect_activate(|app| Self::core_ui(app));
-
-        // Run the application
-        app.run();
-        return app;
-
-     }
-
-    fn core_ui(app: &Application) {
-        // Create a window and set the title
-        let window = ApplicationWindow::builder()
-            .application(app)
-            .title("My GTK App")
-            .build();
+fn title_text(arg: &str) -> gtk::Label {
+    let label = gtk::Label::new(Some(arg));
     
-        // Present window
-        window.present();
-
-    }
-
-}
-// Object holding the state
-#[derive(CompositeTemplate, Default)]
-#[template(resource = "/org/gtk_rs/Todo6/window.ui")]
-pub struct Window {
-    #[template_child]
-    pub entry: TemplateChild<Entry>,
-    #[template_child]
-    pub tasks_list: TemplateChild<ListBox>,
-    pub tasks: RefCell<Option<gio::ListStore>>,
-    pub settings: OnceCell<Settings>,
-}
-
-// The central trait for subclassing a GObject
-#[glib::object_subclass]
-impl ObjectSubclass for Window {
-    // `NAME` needs to match `class` attribute of template
-    const NAME: &'static str = "TodoWindow";
-    type Type = super::Window;
-    type ParentType = gtk::ApplicationWindow;
-
-    fn class_init(klass: &mut Self::Class) {
-        klass.bind_template();
-
-        // Create action to remove done tasks and add to action group "win"
-        klass.install_action("win.remove-done-tasks", None, |window, _, _| {
-            window.remove_done_tasks();
-        });
-    }
-
-    fn instance_init(obj: &InitializingObject<Self>) {
-        obj.init_template();
-    }
+    return label;
 }
